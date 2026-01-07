@@ -1,0 +1,54 @@
+name: "Copilot Setup Steps"
+
+# Trigger on changes to this file or manual dispatch
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  # ⚠️ Job name MUST be exactly: copilot-setup-steps
+  copilot-setup-steps:
+    runs-on: ubuntu-22.04  # Best-supported OS for PHP 8.2+ on GitHub Actions
+
+    permissions:
+      contents: read  # Required to checkout code
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, fileinfo, json, tokenizer, pdo, pdo_mysql, bcmath
+          coverage: none
+          tools: composer:v2
+
+      - name: Install Composer dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Copy .env.example to .env
+        run: cp .env.example .env
+
+      - name: Generate Laravel application key
+        run: php artisan key:generate --no-interaction
+
+      - name: Setup SQLite for database operations
+        run: |
+          echo "DB_CONNECTION=sqlite" >> .env
+          echo "DB_FOREIGN_KEYS=true" >> .env
+          touch database/database.sqlite
+
+      - name: Run migrations to establish schema
+        run: php artisan migrate --no-interaction --force
+
+      # Optional: Run basic linter to validate syntax (helps Copilot understand structure)
+      - name: Run PHP linter
+        run: find app database -name "*.php" -exec php -l {} \;
