@@ -11,7 +11,7 @@ on:
       - .github/workflows/copilot-setup-steps.yml
 
 jobs:
-  # ⚠️ Job name MUST be exactly: copilot-setup-steps
+  # Job name MUST be exactly: copilot-setup-steps
   copilot-setup-steps:
     runs-on: ubuntu-22.04  # Best-supported OS for PHP 8.2+ on GitHub Actions
 
