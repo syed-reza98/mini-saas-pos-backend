@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+    # Laravel Application
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: mini-saas-pos-app
+        restart: unless-stopped
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+            - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+        networks:
+            - mini-saas-pos-network
+        depends_on:
+            - db
+            - redis
+
+    # Nginx Web Server
+    webserver:
+        image: nginx:alpine
+        container_name: mini-saas-pos-webserver
+        restart: unless-stopped
+        ports:
+            - "8000:80"
+        volumes:
+            - ./:/var/www
+            - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+        networks:
+            - mini-saas-pos-network
+        depends_on:
+            - app
+
+    # MySQL Database
+    db:
+        image: mysql:8.0
+        container_name: mini-saas-pos-db
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: ${DB_DATABASE:-mini_saas_pos}
+            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+            MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+            MYSQL_USER: ${DB_USERNAME:-sail}
+        ports:
+            - "3306:3306"
+        volumes:
+            - dbdata:/var/lib/mysql
+        networks:
+            - mini-saas-pos-network
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    # Redis Cache
+    redis:
+        image: redis:alpine
+        container_name: mini-saas-pos-redis
+        restart: unless-stopped
+        ports:
+            - "6379:6379"
+        networks:
+            - mini-saas-pos-network
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+networks:
+    mini-saas-pos-network:
+        driver: bridge
+
+volumes:
+    dbdata:
+        driver: local
